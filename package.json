@@ -1,0 +1,33 @@
+{
+    "name": "model-edge-exporter",
+    "version": "1.0.0",
+    "description": "根据模型文件生成GLB格式的线框文件",
+    "main": "main.js",
+    "scripts": {
+        "build": "node build.js",
+        "build:windows": "node build.js windows",
+        "build:linux": "node build.js docker-linux",
+        "build:all": "node build.js windows && node build.js docker-linux"
+    },
+    "bin": "main.js",
+    "pkg": {
+        "scripts": [
+            "main.js",
+            "database.js",
+            "node_export.js"
+        ],
+        "assets": [
+            "zstd.wasm",
+            "node_modules/sql.js/dist/sql-wasm.wasm"
+        ]
+    },
+    "dependencies": {
+        "@bokuweb/zstd-wasm": "^0.0.27",
+        "@toondepauw/node-zstd": "^1.2.0",
+        "sql.js": "^1.13.0",
+        "three": "^0.177.0"
+    },
+    "devDependencies": {
+        "pkg": "^5.8.1"
+    }
+}
