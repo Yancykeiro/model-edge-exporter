@@ -14,17 +14,55 @@ const {
 const { Decoder } = require('@toondepauw/node-zstd');
 const decoder = new Decoder();
 
+
+let SQL = null;
+let isZstdInitialized = false;
+
 async function initializeWasm() {
     if (!SQL) {
-        const wasmPath = path.join(__dirname, '../node_modules/sql.js/dist/sql-wasm.wasm');
-        const wasmBinary = fs.readFileSync(wasmPath);
+        let wasmPath;
+        let wasmBinary;
+
+        if (process.pkg) {
+            // 打包后的环境，WASM 文件应该在可执行文件同一目录
+            wasmPath = path.join(path.dirname(process.execPath), 'sql-wasm.wasm');
+
+            // 如果外部文件不存在，尝试从打包的资源中读取
+            if (fs.existsSync(wasmPath)) {
+                wasmBinary = fs.readFileSync(wasmPath);
+            } else {
+                // 从打包的资源中读取
+                try {
+                    wasmBinary = fs.readFileSync(path.join(__dirname, '../node_modules/sql.js/dist/sql-wasm.wasm'));
+                } catch (error) {
+                    throw new Error('找不到 sql-wasm.wasm 文件。请确保 sql-wasm.wasm 文件与可执行文件在同一目录。');
+                }
+            }
+        } else {
+            // 开发环境
+            wasmPath = path.join(__dirname, 'node_modules/sql.js/dist/sql-wasm.wasm');
+            wasmBinary = fs.readFileSync(wasmPath);
+        }
+
         SQL = await initSqlJs({ wasmBinary });
     }
 
     if (!isZstdInitialized) {
-        const zstdWasmPath = path.join(__dirname, '../node_modules/@bokuweb/zstd-wasm/dist/zstd-wasm.wasm');
-        const zstdWasmBinary = fs.readFileSync(zstdWasmPath);
-        await initZstd(zstdWasmBinary);
+        let zstdWasmPath;
+
+        if (process.pkg) {
+            // 打包后的环境
+            zstdWasmPath = path.join(path.dirname(process.execPath), 'zstd.wasm');
+
+            if (!fs.existsSync(zstdWasmPath)) {
+                throw new Error('找不到 zstd.wasm 文件。请确保 zstd.wasm 文件与可执行文件在同一目录。');
+            }
+        } else {
+            // 开发环境
+            zstdWasmPath = path.join(__dirname, 'zstd.wasm');
+        }
+
+        await init(zstdWasmPath);
         isZstdInitialized = true;
     }
 }
@@ -38,6 +76,8 @@ const m = new MeshBasicMaterial({
 // let _mergeVertices;
 // let _SimplifyModifier;
 async function loadDatabase(filePath, isEncrypted = false) {
+    await initializeWasm();
+
     // const { mergeVertices } = await import('three/examples/jsm/utils/BufferGeometryUtils.js');
     // const { SimplifyModifier } = await import('three/examples/jsm/modifiers/SimplifyModifier.js');
 
