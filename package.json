@@ -6,6 +6,8 @@
     "scripts": {
         "build": "node build.js",
         "build:windows": "node build.js windows",
+        "build:linux-x64": "node build.js linux-x64",
+        "build:linux-arm64": "node build.js linux-arm64",
         "build:linux": "node build.js docker-linux",
         "build:all": "node build.js windows && node build.js docker-linux"
     },
@@ -19,6 +21,11 @@
         "assets": [
             "zstd.wasm",
             "node_modules/sql.js/dist/sql-wasm.wasm"
+        ],
+        "targets": [
+            "node18-win-x64",
+            "node18-linux-x64",
+            "node18-linux-arm64"
         ]
     },
     "dependencies": {

@@ -213,10 +213,14 @@ function buildForPlatform(targetPlatform) {
             break;
 
         case 'linux':
+        case 'linux-x64':
             pkgTarget = 'node18-linux-x64';
             outputName = 'model-edge-exporter-linux';
             break;
-
+        case 'linux-arm64':
+            pkgTarget = 'node18-linux-arm64';
+            outputName = 'model-edge-exporter-linux-arm64';
+            break;
         case 'current':
             if (os.platform() === 'win32') {
                 return buildForPlatform('windows');
@@ -316,16 +320,19 @@ function showHelp() {
     console.log('\n支持的平台:');
     console.log('  current         根据当前系统选择平台 (默认)');
     console.log('  windows         构建 Windows 版本');
-    console.log('  linux           尝试构建 Linux 版本 (可能失败)');
+    console.log('  linux           构建 Linux x64 版本 (可能失败)');
+    console.log('  linux-x64       构建 Linux x64 版本 (可能失败)');
+    console.log('  linux-arm64     构建 Linux ARM64 版本 (可能失败)');
     console.log('  github-actions  创建 GitHub Actions 配置文件');
     console.log('\n示例:');
     console.log('  node build.js windows');
-    console.log('  node build.js linux');
+    console.log('  node build.js linux-arm64');
     console.log('  node build.js github-actions');
 
     console.log('\n💡 提示:');
     console.log('- Windows 构建通常成功');
     console.log('- Linux 构建在 Windows 上可能失败');
+    console.log('- ARM64 构建在 Windows 上通常会失败');
     console.log('- 推荐使用 GitHub Actions 进行跨平台构建');
 }
 

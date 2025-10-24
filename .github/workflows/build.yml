@@ -12,10 +12,16 @@ jobs:
                 include:
                     - os: ubuntu-latest
                       target: node18-linux-x64
-                      output: model-edge-exporter-linux
+                      output: model-edge-exporter-linux-x64
+                      arch: x64
+                    - os: ubuntu-latest
+                      target: node18-linux-arm64
+                      output: model-edge-exporter-linux-arm64
+                      arch: arm64
                     - os: windows-latest
                       target: node18-win-x64
                       output: model-edge-exporter-win.exe
+                      arch: x64
 
         runs-on: ${{ matrix.os }}
 
@@ -27,6 +33,7 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: '18'
+                  architecture: ${{ matrix.arch }}
 
             - name: Install dependencies
               run: npm ci
@@ -34,15 +41,16 @@ jobs:
             - name: Install pkg
               run: npm install -g pkg
 
-            - name: Build
-              run: pkg --targets ${{ matrix.target }} --output dist/${{ matrix.output }} main.js
+            - name: Build with pkg
+              run: pkg . --targets ${{ matrix.target }} --output dist/${{ matrix.output }}
 
-            - name: Copy WASM files
+            - name: Copy WASM files to output directory
               shell: bash
               run: |
                   mkdir -p dist
                   cp zstd.wasm dist/ 2>/dev/null || echo "zstd.wasm not found"
                   cp node_modules/sql.js/dist/sql-wasm.wasm dist/sql-wasm.wasm 2>/dev/null || echo "sql-wasm.wasm not found"
+                  ls -la dist/
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v4
