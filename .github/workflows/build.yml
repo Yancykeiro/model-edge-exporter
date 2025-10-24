@@ -6,22 +6,16 @@ on:
         branches: [main, master]
 
 jobs:
-    build:
+    build-x64:
         strategy:
             matrix:
                 include:
                     - os: ubuntu-latest
                       target: node18-linux-x64
                       output: model-edge-exporter-linux-x64
-                      arch: x64
-                    - os: ubuntu-latest
-                      target: node18-linux-arm64
-                      output: model-edge-exporter-linux-arm64
-                      arch: arm64
                     - os: windows-latest
                       target: node18-win-x64
                       output: model-edge-exporter-win.exe
-                      arch: x64
 
         runs-on: ${{ matrix.os }}
 
@@ -33,7 +27,6 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: '18'
-                  architecture: ${{ matrix.arch }}
 
             - name: Install dependencies
               run: npm ci
@@ -50,7 +43,6 @@ jobs:
                   mkdir -p dist
                   cp zstd.wasm dist/ 2>/dev/null || echo "zstd.wasm not found"
                   cp node_modules/sql.js/dist/sql-wasm.wasm dist/sql-wasm.wasm 2>/dev/null || echo "sql-wasm.wasm not found"
-                  ls -la dist/
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v4
@@ -60,10 +52,34 @@ jobs:
                       dist/${{ matrix.output }}
                       dist/*.wasm
 
-            - name: Create Release (on tag)
-              if: startsWith(github.ref, 'refs/tags/')
-              uses: softprops/action-gh-release@v2
+    build-arm64:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v3
+
+            - name: Build ARM64 in Docker
+              run: |
+                  docker run --rm --platform linux/arm64 \
+                    -v ${{ github.workspace }}:/workspace \
+                    -w /workspace \
+                    node:18-alpine sh -c "
+                      npm ci --ignore-scripts &&
+                      npm install -g pkg &&
+                      pkg . --targets node18-linux-arm64 --output dist/model-edge-exporter-linux-arm64 &&
+                      mkdir -p dist &&
+                      cp zstd.wasm dist/ 2>/dev/null || echo 'zstd.wasm not found' &&
+                      cp node_modules/sql.js/dist/sql-wasm.wasm dist/sql-wasm.wasm 2>/dev/null || echo 'sql-wasm.wasm not found'
+                    "
+
+            - name: Upload ARM64 artifacts
+              uses: actions/upload-artifact@v4
               with:
-                  files: |
-                      dist/${{ matrix.output }}
+                  name: model-edge-exporter-linux-arm64
+                  path: |
+                      dist/model-edge-exporter-linux-arm64
                       dist/*.wasm

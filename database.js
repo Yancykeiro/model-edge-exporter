@@ -11,8 +11,17 @@ const {
     MeshBasicMaterial,
 } = require('three');
 // const ZstdCodec = require('zstd-codec').ZstdCodec;
-const { Decoder } = require('@toondepauw/node-zstd');
-const decoder = new Decoder();
+// const { Decoder } = require('@toondepauw/node-zstd');
+// const decoder = new Decoder();
+
+let decoder;
+try {
+    const { Decoder } = require('@toondepauw/node-zstd');
+    decoder = new Decoder();
+} catch (error) {
+    console.warn('Warning: @toondepauw/node-zstd not available, falling back to other decompression methods');
+    decoder = null;
+}
 
 
 let SQL = null;
@@ -108,26 +117,38 @@ async function loadDatabase(filePath, isEncrypted = false) {
 
 
     } else if (filePath.endsWith('.zstd')) {
-        // await init('./zstd.wasm');
-        const compressed = new Uint8Array(buffer);
+        if (decoder) {
+            const compressed = new Uint8Array(buffer);
+            const res = decoder.decodeSync(compressed);
+            uintArray = new Uint8Array(res);
+        } else {
+            // 使用 @bokuweb/zstd-wasm 作为备选方案
+            await init('./zstd.wasm');
+            const compressed = new Uint8Array(buffer);
+            const res = decompress(compressed);
+            uintArray = new Uint8Array(res);
+        }
 
-        const res = decoder.decodeSync(compressed);
-        // const res = decompress(compressed);
-        uintArray = new Uint8Array(res);
+        // // await init('./zstd.wasm');
+        // const compressed = new Uint8Array(buffer);
 
-        // ZstdCodec.run((zstd) => {
-        //     const simple = new zstd.Simple();
+        // const res = decoder.decodeSync(compressed);
+        // // const res = decompress(compressed);
+        // uintArray = new Uint8Array(res);
 
-        //     const compressedData = new Uint8Array(buffer);
+        // // ZstdCodec.run((zstd) => {
+        // //     const simple = new zstd.Simple();
 
-        //     try {
-        //         const decompressedData = simple.decompress(compressedData);
-        //         console.log('解压成功:', decompressedData);
-        //         uintArray = new Uint8Array(decompressedData);
-        //     } catch (error) {
-        //         console.error('解压失败:', error);
-        //     }
-        // });
+        // //     const compressedData = new Uint8Array(buffer);
+
+        // //     try {
+        // //         const decompressedData = simple.decompress(compressedData);
+        // //         console.log('解压成功:', decompressedData);
+        // //         uintArray = new Uint8Array(decompressedData);
+        // //     } catch (error) {
+        // //         console.error('解压失败:', error);
+        // //     }
+        // // });
     }
     else {
         uintArray = new Uint8Array(buffer);
